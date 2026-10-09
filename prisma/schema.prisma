@@ -1,0 +1,47 @@
+datasource db {
+  provider = "mongodb"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  admin
+  gestor
+  funcionario
+}
+
+model Usuario {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  senhaHash String
+  role      Role     @default(funcionario)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relação 1 para 1 com o perfil
+  perfil    PerfilConta?
+
+  @@map("usuarios")
+}
+
+model PerfilConta {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  nomeCompleto String
+  cpf          String?   @unique
+  matricula    String?   @unique
+  cargo        String?
+  departamento String?
+  telefone     String?
+  dataAdmissao DateTime?
+  fotoUrl      String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relação com o Usuário
+  usuarioId    String    @unique @db.ObjectId
+  usuario      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("perfis_contas")
+  }
