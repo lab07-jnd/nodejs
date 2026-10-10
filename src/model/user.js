@@ -1,13 +1,12 @@
 const { Schema, model } = require('mongoose');
 
-const UsuarioSchema = new Schema(
+const UserSchema = new Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    senhaHash: { type: String, required: true, select: false },
-    role: { type: String, enum: ['admin', 'gestor', 'funcionario'], default: 'funcionario' },
-   
+    passwordHash: { type: String, required: true, select: false },
+    role: { type: String, enum: ['admin', 'manager', 'employee'], default: 'employee' },
   },
   { timestamps: true }
 );
 
-module.exports = model('Usuario', UsuarioSchema);
+module.exports = model('User', UserSchema);
