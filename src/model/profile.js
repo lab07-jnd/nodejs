@@ -1,18 +1,18 @@
 const { Schema, model } = require('mongoose');
 
-const PerfilContaSchema = new Schema(
+const AccountProfileSchema = new Schema(
   {
-    usuario: { type: Schema.Types.ObjectId, ref: 'Usuario', required: true, unique: true },
-    nomeCompleto: { type: String, required: true, trim: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    fullName: { type: String, required: true, trim: true },
     cpf: { type: String, unique: true, sparse: true },
-    matricula: { type: String, unique: true, sparse: true },
-    cargo: { type: String, trim: true },
-    departamento: { type: String, trim: true },
-    telefone: { type: String },
-    dataAdmissao: { type: Date },
-    fotoUrl: { type: String },
+    employeeId: { type: String, unique: true, sparse: true },
+    position: { type: String, trim: true },
+    department: { type: String, trim: true },
+    phone: { type: String },
+    hireDate: { type: Date },
+    photoUrl: { type: String },
   },
   { timestamps: true }
 );
 
-module.exports = model('PerfilConta', PerfilContaSchema);
+module.exports = model('AccountProfile', AccountProfileSchema);
