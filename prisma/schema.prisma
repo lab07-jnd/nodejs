@@ -1,5 +1,6 @@
 datasource db {
   provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -8,40 +9,55 @@ generator client {
 
 enum Role {
   admin
-  gestor
-  funcionario
+  manager
+  employee
 }
 
-model Usuario {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
-  senhaHash String
-  role      Role     @default(funcionario)
+model User {
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  name  String
+  email String  @unique
+  phone String?
+
+  // Authentication
+  passwordHash      String
+  role              Role     @default(employee)
+  emailVerified     Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  lastLoginAt       DateTime?
+  passwordChangedAt DateTime?
+
+  // Password reset flow
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relação 1 para 1 com o perfil
-  perfil    PerfilConta?
+  // 1:1 relation with the account profile
+  profile Profile?
 
-  @@map("usuarios")
+  @@index([resetPasswordToken])
+  @@map("users")
 }
 
-model PerfilConta {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  nomeCompleto String
-  cpf          String?   @unique
-  matricula    String?   @unique
-  cargo        String?
-  departamento String?
-  telefone     String?
-  dataAdmissao DateTime?
-  fotoUrl      String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+model Profile {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  // Relação com o Usuário
-  usuarioId    String    @unique @db.ObjectId
-  usuario      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  // Employment data
+  taxId      String?   @unique
+  employeeId String?   @unique
+  jobTitle   String?
+  department String?
+  hireDate   DateTime?
+  photoUrl   String?
 
-  @@map("perfis_contas")
-  }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation with the user
+  userId String @unique @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
