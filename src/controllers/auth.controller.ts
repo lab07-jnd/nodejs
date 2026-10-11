@@ -11,17 +11,25 @@ if (!JWT_KEY) {
   throw new Error("JWT_KEY is not defined");
 }
 
-async function createUser(email: string, password: string) {
-  return prisma.usuario.create({
+async function createUser(
+  name: string,
+  email: string,
+  passwordHash: string,
+  phone?: string | null,
+) {
+  return prisma.user.create({
     data: {
+      name,
       email,
-      senhaHash: password,
+      passwordHash,
+      phone: phone ?? null,
+      passwordChangedAt: new Date(),
     },
   });
 }
 
 async function getUser(email: string) {
-  return prisma.usuario.findUnique({
+  return prisma.user.findUnique({
     where: {
       email,
     },
@@ -42,7 +50,7 @@ export async function signUp(req: Request, res: Response) {
     return;
   }
 
-  const { email, password } = result.data;
+  const { name, email, password, phone } = result.data;
 
   const lowerEmail = email.toLowerCase();
 
@@ -56,7 +64,7 @@ export async function signUp(req: Request, res: Response) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await createUser(lowerEmail, passwordHash);
+    const user = await createUser(name, lowerEmail, passwordHash, phone);
 
     const token = generateJWT(String(user.id));
 
@@ -92,14 +100,14 @@ export async function signIn(req: Request, res: Response) {
   try {
     const user = await getUser(lowerEmail);
 
-    if (!user) {
+    if (!user || !user.isActive) {
       res.status(401).json({
         error: "Email or password is incorrect",
       });
       return;
     }
 
-    const match = await bcrypt.compare(password, user.senhaHash);
+    const match = await bcrypt.compare(password, user.passwordHash);
 
     if (!match) {
       res.status(401).json({
@@ -108,6 +116,11 @@ export async function signIn(req: Request, res: Response) {
       return;
     }
 
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+    
     const token = generateJWT(String(user.id));
 
     res.json({ token });
