@@ -10,7 +10,11 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "prisma:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
     "prepare": "husky",
+    "postinstall": "prisma generate",
     "start": "node --env-file=.env dist/server.cjs"
   },
   "keywords": [],

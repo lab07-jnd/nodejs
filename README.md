@@ -27,10 +27,13 @@ Resolução dos apontamentos da review (PRs #1 e #2):
 ## Como rodar
 
 ```bash
-npm install
+npm install            # o `prisma generate` roda junto (postinstall)
 cp .env.example .env   # preencha DATABASE_URL e JWT_KEY
-npx prisma generate
+npm run db:push        # cria as coleções no MongoDB
 npm run dev
 ```
+
+O Prisma Client fica em `src/lib/prisma.ts`. No MongoDB não existe `prisma migrate` — quem sincroniza
+as coleções/índices é o `npm run db:push` (além dele: `npm run db:studio`).
 
 > ⚠️ A credencial do MongoDB que estava versionada precisa ser rotacionada no Atlas.
