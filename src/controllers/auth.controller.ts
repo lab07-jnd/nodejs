@@ -120,7 +120,6 @@ export async function signIn(req: Request, res: Response) {
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
-    
     const token = generateJWT(String(user.id));
 
     res.json({ token });
