@@ -1,5 +1,17 @@
 import { prisma } from "../lib/prisma.js";
 export type Role = "admin" | "employee" | "manager";
+import jwt from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
+
+const JWT_KEY = process.env.JWT_KEY;
+
+if (!JWT_KEY) {
+  throw new Error("JWT_KEY is not defined");
+}
+
+export function generateJWT(id: string, expiresTime: SignOptions["expiresIn"] = "1h"): string {
+  return jwt.sign({ id }, JWT_KEY!, { expiresIn: expiresTime });
+}
 
 export const authRole = async (data: Role) => {
   const existingRole = await prisma.user.findFirst({
@@ -14,3 +26,72 @@ export const authRole = async (data: Role) => {
 
   return existingRole.role;
 };
+
+export async function createUser(
+  name: string,
+  email: string,
+  passwordHash: string,
+  phone?: string | null,
+) {
+  return prisma.user.create({
+    data: {
+      name,
+      email,
+      passwordHash,
+      phone: phone ?? null,
+      passwordChangedAt: new Date(),
+    },
+  });
+}
+
+export async function removeUser(id: string) {
+  await prisma.user.delete({
+    where: {
+      id: id,
+    },
+  });
+}
+
+export async function findUserById(email: string) {
+  return prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+}
+
+export async function findUsers(skip: number, size: number) {
+  const users = await prisma.user.findMany({
+    skip,
+    take: size,
+    omit: {
+      passwordHash: true,
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+  return users;
+}
+
+export async function countUsers() {
+  return await prisma.user.count();
+}
+
+export async function updateLoginDate(id: string) {
+  await prisma.user.update({
+    where: { id: id },
+    data: { lastLoginAt: new Date() },
+  });
+}
+
+export async function updateUserRole(id: string, newRole: Role) {
+  await prisma.user.update({
+    where: {
+      id: id,
+    },
+    data: {
+      role: newRole,
+    },
+  });
+}

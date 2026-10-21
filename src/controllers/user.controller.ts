@@ -1,13 +1,12 @@
 import type { Request, Response } from "express";
-import { prisma } from "../lib/prisma.js";
-import { Prisma } from "@prisma/client";
-
+import { findUsers, countUsers, updateUserRole, removeUser } from "../services/user.services.js";
 import {
   getSchema,
   updateBodySchema,
   updateParamsSchema,
   deleteSchema,
 } from "../schemas/user.schema.js";
+import { Prisma } from "@prisma/client";
 
 export async function getUsers(req: Request, res: Response) {
   const result = getSchema.safeParse(req.query);
@@ -21,18 +20,8 @@ export async function getUsers(req: Request, res: Response) {
   try {
     const skip = size * (page - 1);
 
-    const users = await prisma.user.findMany({
-      skip,
-      take: size,
-      omit: {
-        passwordHash: true,
-      },
-      orderBy: {
-        id: "asc",
-      },
-    });
-
-    const totalUsers = await prisma.user.count();
+    const users = await findUsers(skip, size);
+    const totalUsers = await countUsers();
     const totalPages = Math.ceil(totalUsers / size);
     res.status(200).json({ totalUsers, totalPages, users });
     return;
@@ -61,14 +50,7 @@ export async function updateUser(req: Request, res: Response) {
   const { newRole } = bodyResult.data;
 
   try {
-    await prisma.user.update({
-      where: {
-        id: id,
-      },
-      data: {
-        role: newRole,
-      },
-    });
+    await updateUserRole(id, newRole);
     res.status(200).json({
       message: "updated user",
     });
@@ -97,11 +79,7 @@ export async function deleteUser(req: Request, res: Response) {
   const { id } = result.data;
 
   try {
-    await prisma.user.delete({
-      where: {
-        id: id,
-      },
-    });
+    await removeUser(id);
 
     res.status(200).json({ message: "User deleted successfully." });
   } catch (error) {

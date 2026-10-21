@@ -1,44 +1,12 @@
 import type { Request, Response } from "express";
-import type { SignOptions } from "jsonwebtoken";
 import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { prisma } from "../lib/prisma.js";
-
-const JWT_KEY = process.env.JWT_KEY;
-
-if (!JWT_KEY) {
-  throw new Error("JWT_KEY is not defined");
-}
-
-async function createUser(
-  name: string,
-  email: string,
-  passwordHash: string,
-  phone?: string | null,
-) {
-  return prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      phone: phone ?? null,
-      passwordChangedAt: new Date(),
-    },
-  });
-}
-
-async function getUser(email: string) {
-  return prisma.user.findUnique({
-    where: {
-      email,
-    },
-  });
-}
-
-function generateJWT(id: string, expiresTime: SignOptions["expiresIn"] = "1h"): string {
-  return jwt.sign({ id }, JWT_KEY!, { expiresIn: expiresTime });
-}
+import {
+  createUser,
+  findUserById,
+  generateJWT,
+  updateLoginDate,
+} from "../services/user.services.js";
 
 export async function signUp(req: Request, res: Response) {
   const result = signUpSchema.safeParse(req.body);
@@ -55,7 +23,7 @@ export async function signUp(req: Request, res: Response) {
   const lowerEmail = email.toLowerCase();
 
   try {
-    if (await getUser(lowerEmail)) {
+    if (await findUserById(lowerEmail)) {
       res.status(409).json({
         error: "Email already exists",
       });
@@ -98,7 +66,7 @@ export async function signIn(req: Request, res: Response) {
 
   const lowerEmail = email.toLowerCase();
   try {
-    const user = await getUser(lowerEmail);
+    const user = await findUserById(lowerEmail);
 
     if (!user || !user.isActive) {
       res.status(401).json({
@@ -116,10 +84,7 @@ export async function signIn(req: Request, res: Response) {
       return;
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+    await updateLoginDate(user.id);
 
     const token = generateJWT(String(user.id));
 
