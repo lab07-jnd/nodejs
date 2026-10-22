@@ -86,7 +86,7 @@ export async function signIn(req: Request, res: Response) {
 
     await updateLoginDate(user.id);
 
-    const token = generateJWT(String(user.id));
+    const token = generateJWT(String(user.id), user.role);
 
     res.json({ token });
   } catch (error) {
