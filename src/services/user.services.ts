@@ -55,10 +55,10 @@ export async function removeUser(id: string) {
   });
 }
 
-export async function findUserById(email: string) {
+export async function findUserById(id: string) {
   return prisma.user.findUnique({
     where: {
-      email,
+      id,
     },
   });
 }
