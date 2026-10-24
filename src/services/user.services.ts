@@ -66,6 +66,9 @@ export async function findUsers(skip: number, size: number) {
     take: size,
     omit: {
       passwordHash: true,
+      resetPasswordToken: true,
+      resetPasswordExpires: true,
+      passwordChangedAt: true,
     },
     orderBy: {
       id: "asc",
