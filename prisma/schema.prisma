@@ -21,9 +21,9 @@ model User {
 
   // Authentication
   passwordHash      String
-  role              Role     @default(employee)
-  emailVerified     Boolean  @default(false)
-  isActive          Boolean  @default(true)
+  role              Role      @default(employee)
+  emailVerified     Boolean   @default(false)
+  isActive          Boolean   @default(true)
   lastLoginAt       DateTime?
   passwordChangedAt DateTime?
 
@@ -36,6 +36,8 @@ model User {
 
   // 1:1 relation with the account profile
   profile Profile?
+
+  refreshTokens RefreshToken[]
 
   @@index([resetPasswordToken])
   @@map("users")
@@ -60,4 +62,16 @@ model Profile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("profiles")
+}
+
+model RefreshToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

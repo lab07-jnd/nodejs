@@ -4,6 +4,11 @@ import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { prisma } from "../lib/prisma.js";
+import {
+  generateRefreshToken,
+  saveRefreshToken,
+  validateRefreshToken,
+} from "../services/auth.service.js";
 
 const JWT_KEY = process.env.JWT_KEY;
 
@@ -116,18 +121,65 @@ export async function signIn(req: Request, res: Response) {
       return;
     }
 
+    const token = generateJWT(String(user.id));
+
+    const refreshToken = generateRefreshToken(String(user.id));
+
+    await saveRefreshToken(refreshToken, String(user.id));
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
-    
-    const token = generateJWT(String(user.id));
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
 
     res.json({ token });
   } catch (error) {
     console.error(error);
 
     res.status(500).json({
+      error: "Internal Server Error",
+    });
+  }
+}
+
+export async function refresh(req: Request, res: Response) {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({
+      error: "Refresh token not provided",
+    });
+  }
+
+  try {
+    const { userId } = await validateRefreshToken(refreshToken);
+
+    const token = generateJWT(userId);
+
+    return res.status(200).json({ token });
+  } catch (error) {
+    if (
+      error instanceof jwt.JsonWebTokenError ||
+      (error instanceof Error && error.message === "INVALID_REFRESH_TOKEN")
+    ) {
+      res.clearCookie("refreshToken", { path: "/" });
+
+      return res.status(401).json({
+        error: "Refresh token is invalid or expired",
+      });
+    }
+
+    console.error(error);
+
+    return res.status(500).json({
       error: "Internal Server Error",
     });
   }
