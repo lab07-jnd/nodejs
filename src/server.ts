@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import dotenv from "dotenv";
 import authRouter from "./routes/auth.routes.js";
+import cookieParser from "cookie-parser";
 dotenv.config();
 
 import cors from "cors";
@@ -12,6 +13,7 @@ const server = createServer(app);
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/auth", authRouter);
 
