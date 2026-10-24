@@ -1,21 +1,5 @@
 import { prisma } from "../lib/prisma.js";
 export type Role = "admin" | "employee" | "manager";
-import jwt from "jsonwebtoken";
-import type { SignOptions } from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is not defined");
-}
-
-export function generateJWT(
-  userId: string,
-  userRole: Role = "employee",
-  expiresTime: SignOptions["expiresIn"] = "1h",
-): string {
-  return jwt.sign({ userId, role: userRole }, JWT_SECRET!, { expiresIn: expiresTime });
-}
 
 export const authRole = async (data: Role) => {
   const existingRole = await prisma.user.findFirst({

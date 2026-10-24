@@ -1,23 +1,17 @@
 import type { Request, Response } from "express";
 import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
 import bcrypt from "bcrypt";
-import {
-  createUser,
-  findUserByEmail,
-  generateJWT,
-  updateLoginDate,
-} from "../services/user.services.js";
+import { createUser, findUserByEmail, updateLoginDate } from "../services/user.services.js";
 import {
   generateRefreshToken,
   saveRefreshToken,
   validateRefreshToken,
+  generateJWT,
 } from "../services/auth.service.js";
-import jwt from "jsonwebtoken"
-
+import jwt from "jsonwebtoken";
 
 export async function signUp(req: Request, res: Response) {
   const result = signUpSchema.safeParse(req.body);
-
   if (!result.success) {
     res.status(400).json({
       error: result.error.issues.map((issue) => issue.message),
