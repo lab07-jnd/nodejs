@@ -3,7 +3,7 @@ import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
 import bcrypt from "bcrypt";
 import {
   createUser,
-  findUserById,
+  findUserByEmail,
   generateJWT,
   updateLoginDate,
 } from "../services/user.services.js";
@@ -23,7 +23,7 @@ export async function signUp(req: Request, res: Response) {
   const lowerEmail = email.toLowerCase();
 
   try {
-    if (await findUserById(lowerEmail)) {
+    if (await findUserByEmail(lowerEmail)) {
       res.status(409).json({
         error: "Email already exists",
       });
@@ -66,7 +66,7 @@ export async function signIn(req: Request, res: Response) {
 
   const lowerEmail = email.toLowerCase();
   try {
-    const user = await findUserById(lowerEmail);
+    const user = await findUserByEmail(lowerEmail);
 
     if (!user || !user.isActive) {
       res.status(401).json({

@@ -63,6 +63,14 @@ export async function findUserById(id: string) {
   });
 }
 
+export async function findUserByEmail(email: string) {
+  return prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+}
+
 export async function findUsers(skip: number, size: number) {
   const users = await prisma.user.findMany({
     skip,
