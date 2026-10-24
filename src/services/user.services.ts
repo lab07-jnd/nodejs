@@ -21,6 +21,7 @@ export const authRole = async (data: Role) => {
   const existingRole = await prisma.user.findFirst({
     where: {
       role: data,
+      //deletedAt: null,
     },
   });
   if (!existingRole) {
