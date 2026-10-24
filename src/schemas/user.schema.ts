@@ -8,11 +8,18 @@ export const getSchema = z.object({
 });
 
 export const updateParamsSchema = z.object({
-  id: z.string().min(1, "ID é obrigatório"),
+  id: z
+    .string()
+    .regex(/^[0-9a-fA-F]+$/, { message: "expected hexadecimal id" })
+    .length(24),
 });
 
-export const updateBodySchema = z.object({
+export const updateRoleBodySchema = z.object({
   newRole: z.enum(roles),
+});
+
+export const updateStatusBodySchema = z.object({
+  newStatus: z.boolean(),
 });
 
 export const deleteSchema = z.object({
