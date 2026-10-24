@@ -33,9 +33,12 @@ export async function createUser(
 }
 
 export async function removeUser(id: string) {
-  await prisma.user.delete({
+  await prisma.user.update({
     where: {
       id: id,
+    },
+    data: {
+      deletedAt: new Date(),
     },
   });
 }
