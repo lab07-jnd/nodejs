@@ -39,6 +39,7 @@ export async function removeUser(id: string) {
     },
     data: {
       deletedAt: new Date(),
+      isActive: false,
     },
   });
 }
