@@ -1,8 +1,8 @@
 import type { Response, Request, NextFunction } from "express";
-import { authRole } from "../services/user.services.js";
-import type { Role } from "../services/user.services.js";
+import { authRole } from "../services/user.services.js"
+import type {Role } from "../services/user.services.js"
 
-const roles: Role[] = ["admin", "employee", "manager"];
+const roles: Role[] = ["admin","employee","manager"];
 
 const isRole = (value: string): value is Role => roles.includes(value as Role);
 
