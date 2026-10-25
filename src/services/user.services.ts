@@ -3,8 +3,24 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { Resend } from "resend";
 
+export type Role = "admin" | "employee" | "manager";
+
 const JWT_KEY = process.env.JWT_KEY;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+export const authRole = async (data: Role) => {
+  const existingRole = await prisma.user.findFirst({
+    where: {
+      role: data,
+      deletedAt: null,
+    },
+  });
+  if (!existingRole) {
+    throw new Error("Acesso negado");
+  }
+
+  return existingRole.role;
+};
 
 if (!RESEND_API_KEY) {
   throw new Error("RESEND_API_KEY is not defined");

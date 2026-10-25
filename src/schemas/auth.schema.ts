@@ -11,7 +11,6 @@ export const signInSchema = z.object({
   email: z.string().trim().email("Invalid email format"),
   password: z.string(),
 });
-
 export const passwordResetSchema = z.object({
   email: z.string().trim().email("Invalid email format"),
 });
