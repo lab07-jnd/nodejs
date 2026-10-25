@@ -180,8 +180,7 @@ export async function passwordReset(req: Request, res: Response) {
     const user = await findUserByEmail(email);
     if (user) {
       const token = passwordResetToken(user.passwordHash, user.id);
-      const resetUrl = `https://example.com/reset-password?token=${token}`;
-      await sendPasswordResetToEmail(user.email, resetUrl);
+      await sendPasswordResetToEmail(user.email, token);
     }
     res
       .status(200)
