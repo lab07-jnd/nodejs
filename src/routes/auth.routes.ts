@@ -11,8 +11,10 @@ const router = express.Router();
 
 router.post("/SignUp", signUp);
 router.post("/SignIn", signIn);
+
 router.post("/password-reset", passwordReset);
 router.post("/change-password", changePassword);
+
 router.post("/Refresh", refresh);
 
 export default router;

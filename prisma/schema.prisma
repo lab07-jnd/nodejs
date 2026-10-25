@@ -75,3 +75,4 @@ model RefreshToken {
 
   @@index([userId])
 }
+

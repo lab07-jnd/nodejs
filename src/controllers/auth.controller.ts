@@ -10,6 +10,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { prisma } from "../lib/prisma.js";
 import { findUserByEmail } from "../services/user.services.js";
+
 import {
   generateRefreshToken,
   saveRefreshToken,
@@ -91,6 +92,7 @@ export async function signUp(req: Request, res: Response) {
     const token = generateJWT(String(user.id));
 
     res.status(201).json({ token });
+    
     return;
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {

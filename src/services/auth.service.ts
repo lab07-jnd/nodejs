@@ -27,6 +27,25 @@ if (!JWT_KEY) {
 
 const resend = new Resend(RESEND_API_KEY);
 
+export function generateRefreshToken(userId: string) {
+  return jwt.sign({}, process.env.REFRESH_TOKEN_SECRET!, {
+    subject: userId,
+    expiresIn: "7d",
+  });
+}
+
+export async function saveRefreshToken(refreshToken: string, userId: string) {
+  const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
+
+  await prisma.refreshToken.create({
+    data: {
+      userId,
+      tokenHash,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+}
+
 export async function validateRefreshToken(refreshToken: string) {
   const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
 
@@ -70,25 +89,6 @@ export async function validateRefreshToken(refreshToken: string) {
 
 export function passwordResetToken(pwdHash: string, userId: string) {
   return jwt.sign({ userId }, JWT_KEY! + pwdHash, { expiresIn: "15m" });
-}
-
-export function generateRefreshToken(userId: string) {
-  return jwt.sign({}, process.env.REFRESH_TOKEN_SECRET!, {
-    subject: userId,
-    expiresIn: "7d",
-  });
-}
-
-export async function saveRefreshToken(refreshToken: string, userId: string) {
-  const tokenHash = crypto.createHash("sha256").update(refreshToken).digest("hex");
-
-  await prisma.refreshToken.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
 }
 
 export async function sendPasswordResetToEmail(userEmail: string, token: string) {
