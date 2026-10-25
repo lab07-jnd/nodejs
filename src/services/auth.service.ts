@@ -3,32 +3,18 @@ import crypto from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { Resend } from "resend";
 import bcrypt from "bcrypt";
+import { env } from "../lib/env.js";
 
-const JWT_KEY = process.env.JWT_KEY;
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESET_PASSWORD_URL = process.env.RESET_PASSWORD_URL;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL;
+const JWT_SECRET = env.JWT_SECRET;
 
-if (!RESET_PASSWORD_URL) {
-  throw new Error("RESET_PASSWORD_URL is not configured");
-}
-
-if (!RESEND_FROM_EMAIL) {
-  throw new Error("RESEND_FROM_EMAIL is not configured");
-}
-
-if (!RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY is not defined");
-}
-
-if (!JWT_KEY) {
-  throw new Error("JWT_KEY is not defined");
-}
+const RESEND_API_KEY = env.RESEND_API_KEY;
+const RESET_PASSWORD_URL = env.RESET_PASSWORD_URL;
+const RESEND_FROM_EMAIL = env.RESEND_FROM_EMAIL;
 
 const resend = new Resend(RESEND_API_KEY);
 
 export function generateRefreshToken(userId: string) {
-  return jwt.sign({}, process.env.REFRESH_TOKEN_SECRET!, {
+  return jwt.sign({}, env.REFRESH_TOKEN_SECRET, {
     subject: userId,
     expiresIn: "7d",
   });
@@ -47,7 +33,7 @@ export async function saveRefreshToken(refreshToken: string, userId: string) {
 }
 
 export async function validateRefreshToken(refreshToken: string) {
-  const payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
+  const payload = jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET);
 
   if (typeof payload === "string" || !payload.sub) {
     throw new Error("INVALID_REFRESH_TOKEN");
@@ -88,7 +74,7 @@ export async function validateRefreshToken(refreshToken: string) {
 }
 
 export function passwordResetToken(pwdHash: string, userId: string) {
-  return jwt.sign({ userId }, JWT_KEY! + pwdHash, { expiresIn: "15m" });
+  return jwt.sign({ userId }, JWT_SECRET! + pwdHash, { expiresIn: "15m" });
 }
 
 export async function sendPasswordResetToEmail(userEmail: string, token: string) {
