@@ -9,16 +9,14 @@ import {
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { prisma } from "../lib/prisma.js";
-import {
-  findUserByEmail,
-  passwordResetToken,
-  updateUserPassword,
-  sendPasswordResetToEmail,
-} from "../services/user.services.js";
+import { findUserByEmail } from "../services/user.services.js";
 import {
   generateRefreshToken,
   saveRefreshToken,
   validateRefreshToken,
+  passwordResetToken,
+  updateUserPassword,
+  sendPasswordResetToEmail,
 } from "../services/auth.service.js";
 
 const JWT_KEY = process.env.JWT_KEY;
