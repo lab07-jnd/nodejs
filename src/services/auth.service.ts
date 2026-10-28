@@ -61,3 +61,37 @@ export async function validateRefreshToken(refreshToken: string) {
     storedTokenId: storedToken.id,
   };
 }
+
+export async function logLoginAttempt(email: string, success: boolean, ip: string) {
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingUser) {
+    await prisma.loginAttempts.create({
+      data: {
+        email,
+        success,
+        addressIp: ip,
+      },
+    });
+  } else {
+    await prisma.loginAttempts.create({
+      data: {
+        email,
+        success,
+        userId: existingUser.id,
+        addressIp: ip,
+      },
+    });
+  }
+}
+
+export async function getLoginAttemptsService() {
+  return await prisma.loginAttempts.findMany();
+}
