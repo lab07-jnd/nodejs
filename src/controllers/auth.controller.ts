@@ -12,9 +12,9 @@ import {
   validateRefreshToken,
 } from "../services/auth.service.js";
 
-const JWT_KEY = process.env.JWT_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_KEY) {
+if (!JWT_SECRET) {
   throw new Error("JWT_KEY is not defined");
 }
 
@@ -44,7 +44,7 @@ async function getUser(email: string) {
 }
 
 function generateJWT(id: string, expiresTime: SignOptions["expiresIn"] = "1h"): string {
-  return jwt.sign({ id }, JWT_KEY!, { expiresIn: expiresTime });
+  return jwt.sign({ id }, JWT_SECRET!, { expiresIn: expiresTime });
 }
 
 export async function signUp(req: Request, res: Response) {
@@ -145,7 +145,7 @@ export async function signIn(req: Request, res: Response) {
       path: "/",
     });
 
-    res.cookie("token", accessToken, {
+    res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
