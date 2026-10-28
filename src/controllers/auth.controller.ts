@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-import type { SignOptions } from "jsonwebtoken";
 import {
   signInSchema,
   signUpSchema,
@@ -13,18 +12,15 @@ import { findUserByEmail } from "../services/user.services.js";
 
 import {
   generateRefreshToken,
+  getLoginAttemptsService,
+  logLoginAttempt,
   saveRefreshToken,
   validateRefreshToken,
   passwordResetToken,
   updateUserPassword,
   sendPasswordResetToEmail,
+  generateJWT,
 } from "../services/auth.service.js";
-
-const JWT_KEY = process.env.JWT_KEY;
-
-if (!JWT_KEY) {
-  throw new Error("JWT_KEY is not defined");
-}
 
 async function createUser(
   name: string,
@@ -59,10 +55,6 @@ async function findUserById(id: string) {
   });
 }
 
-function generateJWT(id: string, expiresTime: SignOptions["expiresIn"] = "1h"): string {
-  return jwt.sign({ id }, JWT_KEY!, { expiresIn: expiresTime });
-}
-
 export async function signUp(req: Request, res: Response) {
   const result = signUpSchema.safeParse(req.body);
 
@@ -87,13 +79,8 @@ export async function signUp(req: Request, res: Response) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await createUser(name, lowerEmail, passwordHash, phone);
-
-    const token = generateJWT(String(user.id));
-
-    res.status(201).json({ token });
-    
-    return;
+    await createUser(name, lowerEmail, passwordHash, phone);
+    res.status(201).json({ msg: "Cadastro realizado com sucesso" });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
       res.status(409).json({ error: "Email already exists" });
@@ -112,6 +99,8 @@ export async function signUp(req: Request, res: Response) {
 export async function signIn(req: Request, res: Response) {
   const result = signInSchema.safeParse(req.body);
 
+  const ip = req.ip as string;
+
   if (!result.success) {
     res.status(400).json({
       error: result.error.issues.map((issue) => issue.message),
@@ -129,6 +118,7 @@ export async function signIn(req: Request, res: Response) {
       res.status(401).json({
         error: "Email or password is incorrect",
       });
+      await logLoginAttempt(email, false, ip);
       return;
     }
 
@@ -138,10 +128,12 @@ export async function signIn(req: Request, res: Response) {
       res.status(401).json({
         error: "Email or password is incorrect",
       });
+      await logLoginAttempt(email, false, ip);
       return;
     }
+    await logLoginAttempt(email, true, ip);
 
-    const token = generateJWT(String(user.id));
+    const accessToken = generateJWT(String(user.id));
 
     const refreshToken = generateRefreshToken(String(user.id));
 
@@ -160,7 +152,15 @@ export async function signIn(req: Request, res: Response) {
       path: "/",
     });
 
-    res.json({ token });
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    res.status(200).json({ msg: "Logado com sucesso" });
   } catch (error) {
     console.error(error);
 
@@ -243,6 +243,11 @@ export async function changePassword(req: Request, res: Response) {
 
     console.error("Error changing password:", error);
   }
+}
+
+export async function getLoginAttempts(req: Request, res: Response) {
+  const logs = await getLoginAttemptsService();
+  res.status(200).json({ logs: logs });
 }
 
 export async function refresh(req: Request, res: Response) {

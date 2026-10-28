@@ -4,12 +4,12 @@ import { prisma } from "../lib/prisma.js";
 import { Resend } from "resend";
 import bcrypt from "bcrypt";
 import { env } from "../lib/env.js";
-
-const JWT_SECRET = env.JWT_SECRET;
+import type { SignOptions } from "jsonwebtoken";
 
 const RESEND_API_KEY = env.RESEND_API_KEY;
 const RESET_PASSWORD_URL = env.RESET_PASSWORD_URL;
 const RESEND_FROM_EMAIL = env.RESEND_FROM_EMAIL;
+const JWT_SECRET = env.JWT_SECRET;
 
 const resend = new Resend(RESEND_API_KEY);
 
@@ -73,6 +73,10 @@ export async function validateRefreshToken(refreshToken: string) {
   };
 }
 
+export function generateJWT(id: string, expiresTime: SignOptions["expiresIn"] = "1h"): string {
+  return jwt.sign({ id }, JWT_SECRET!, { expiresIn: expiresTime });
+}
+
 export function passwordResetToken(pwdHash: string, userId: string) {
   return jwt.sign({ userId }, JWT_SECRET! + pwdHash, { expiresIn: "15m" });
 }
@@ -107,4 +111,37 @@ export async function updateUserPassword(userId: string, password: string) {
     where: { id: userId },
     data: { passwordHash },
   });
+}
+export async function logLoginAttempt(email: string, success: boolean, ip: string) {
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingUser) {
+    await prisma.loginAttempts.create({
+      data: {
+        email,
+        success,
+        addressIp: ip,
+      },
+    });
+  } else {
+    await prisma.loginAttempts.create({
+      data: {
+        email,
+        success,
+        userId: existingUser.id,
+        addressIp: ip,
+      },
+    });
+  }
+}
+
+export async function getLoginAttemptsService() {
+  return await prisma.loginAttempts.findMany();
 }

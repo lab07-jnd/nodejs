@@ -1,5 +1,4 @@
 import { prisma } from "../lib/prisma.js";
-
 export type Role = "admin" | "employee" | "manager";
 
 export const authRole = async (data: Role) => {
