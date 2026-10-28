@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { prisma } from "../lib/prisma.js";
+import type { SignOptions } from "jsonwebtoken";
+import type { Role } from "./user.services.js";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export function generateRefreshToken(userId: string) {
   return jwt.sign({}, process.env.REFRESH_TOKEN_SECRET!, {
@@ -62,6 +65,17 @@ export async function validateRefreshToken(refreshToken: string) {
   };
 }
 
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not defined");
+}
+
+export function generateJWT(
+  userId: string,
+  userRole: Role = "employee",
+  expiresTime: SignOptions["expiresIn"] = "1h",
+): string {
+  return jwt.sign({ userId, role: userRole }, JWT_SECRET!, { expiresIn: expiresTime });
+}
 export async function logLoginAttempt(email: string, success: boolean, ip: string) {
   const existingUser = await prisma.user.findFirst({
     where: {

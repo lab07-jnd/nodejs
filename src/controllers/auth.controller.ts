@@ -1,51 +1,22 @@
 import type { Request, Response } from "express";
-import type { SignOptions } from "jsonwebtoken";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  updateLoginDate,
+} from "../services/user.services.js";
 import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { prisma } from "../lib/prisma.js";
 import {
   generateRefreshToken,
   getLoginAttemptsService,
   logLoginAttempt,
   saveRefreshToken,
   validateRefreshToken,
+  generateJWT,
 } from "../services/auth.service.js";
-
-const JWT_KEY = process.env.JWT_KEY;
-
-if (!JWT_KEY) {
-  throw new Error("JWT_KEY is not defined");
-}
-
-async function createUser(
-  name: string,
-  email: string,
-  passwordHash: string,
-  phone?: string | null,
-) {
-  return prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      phone: phone ?? null,
-      passwordChangedAt: new Date(),
-    },
-  });
-}
-
-async function getUser(email: string) {
-  return prisma.user.findUnique({
-    where: {
-      email,
-    },
-  });
-}
-
-function generateJWT(id: string, expiresTime: SignOptions["expiresIn"] = "1h"): string {
-  return jwt.sign({ id }, JWT_KEY!, { expiresIn: expiresTime });
-}
+import { Prisma } from "@prisma/client";
 
 export async function signUp(req: Request, res: Response) {
   const result = signUpSchema.safeParse(req.body);
@@ -62,7 +33,7 @@ export async function signUp(req: Request, res: Response) {
   const lowerEmail = email.toLowerCase();
 
   try {
-    if (await getUser(lowerEmail)) {
+    if (await findUserByEmail(lowerEmail)) {
       res.status(409).json({
         error: "Email already exists",
       });
@@ -105,7 +76,7 @@ export async function signIn(req: Request, res: Response) {
 
   const lowerEmail = email.toLowerCase();
   try {
-    const user = await getUser(lowerEmail);
+    const user = await findUserByEmail(lowerEmail);
 
     if (!user || !user.isActive) {
       res.status(401).json({
@@ -126,16 +97,13 @@ export async function signIn(req: Request, res: Response) {
     }
     await logLoginAttempt(email, true, ip);
 
-    const accessToken = generateJWT(String(user.id));
+    await updateLoginDate(user.id);
+
+    const accessToken = generateJWT(String(user.id), user.role);
 
     const refreshToken = generateRefreshToken(String(user.id));
 
     await saveRefreshToken(refreshToken, String(user.id));
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -179,8 +147,8 @@ export async function refresh(req: Request, res: Response) {
 
   try {
     const { userId } = await validateRefreshToken(refreshToken);
-
-    const token = generateJWT(userId);
+    const user = await findUserById(userId);
+    const token = generateJWT(userId, user?.role);
 
     return res.status(200).json({ token });
   } catch (error) {
@@ -193,6 +161,12 @@ export async function refresh(req: Request, res: Response) {
       return res.status(401).json({
         error: "Refresh token is invalid or expired",
       });
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2025") {
+        res.status(404).json({ error: "Not Found" });
+        return;
+      }
     }
 
     console.error(error);

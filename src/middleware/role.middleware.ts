@@ -7,7 +7,7 @@ const roles: Role[] = ["admin", "employee", "manager"];
 const isRole = (value: string): value is Role => roles.includes(value as Role);
 
 export const authorizeRole = (...allRoles: string[]) => {
-  const normalizedAllowedRoles = allRoles.map((role) => role.toUpperCase());
+  const normalizedAllowedRoles = allRoles.map((role) => role);
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -32,6 +32,7 @@ model User {
   resetPasswordExpires DateTime?
 
   createdAt DateTime @default(now())
+  deletedAt DateTime?
   updatedAt DateTime @updatedAt
 
   // 1:1 relation with the account profile
