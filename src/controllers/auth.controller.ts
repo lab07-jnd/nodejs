@@ -1,14 +1,22 @@
 import type { Request, Response } from "express";
-import { createUser, findUserByEmail, updateLoginDate } from "../services/user.services.js";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  updateLoginDate,
+} from "../services/user.services.js";
 import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import {
   generateRefreshToken,
+  getLoginAttemptsService,
+  logLoginAttempt,
   saveRefreshToken,
   validateRefreshToken,
   generateJWT,
 } from "../services/auth.service.js";
+import { Prisma } from "@prisma/client";
 
 export async function signUp(req: Request, res: Response) {
   const result = signUpSchema.safeParse(req.body);
@@ -34,11 +42,9 @@ export async function signUp(req: Request, res: Response) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await createUser(name, lowerEmail, passwordHash, phone);
+    await createUser(name, lowerEmail, passwordHash, phone);
 
-    const token = generateJWT(String(user.id));
-
-    res.status(201).json({ token });
+    res.status(201).json({ msg: "Cadastro realizado com sucesso" });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
       res.status(409).json({ error: "Email already exists" });
@@ -57,6 +63,8 @@ export async function signUp(req: Request, res: Response) {
 export async function signIn(req: Request, res: Response) {
   const result = signInSchema.safeParse(req.body);
 
+  const ip = req.ip as string;
+
   if (!result.success) {
     res.status(400).json({
       error: result.error.issues.map((issue) => issue.message),
@@ -74,6 +82,7 @@ export async function signIn(req: Request, res: Response) {
       res.status(401).json({
         error: "Email or password is incorrect",
       });
+      await logLoginAttempt(email, false, ip);
       return;
     }
 
@@ -83,12 +92,14 @@ export async function signIn(req: Request, res: Response) {
       res.status(401).json({
         error: "Email or password is incorrect",
       });
+      await logLoginAttempt(email, false, ip);
       return;
     }
+    await logLoginAttempt(email, true, ip);
 
     await updateLoginDate(user.id);
 
-    const token = generateJWT(String(user.id), user.role);
+    const accessToken = generateJWT(String(user.id), user.role);
 
     const refreshToken = generateRefreshToken(String(user.id));
 
@@ -101,7 +112,16 @@ export async function signIn(req: Request, res: Response) {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: "/",
     });
-    res.json({ token });
+
+    res.cookie("token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    res.status(200).json({ msg: "Logado com sucesso" });
   } catch (error) {
     console.error(error);
 
@@ -109,6 +129,11 @@ export async function signIn(req: Request, res: Response) {
       error: "Internal Server Error",
     });
   }
+}
+
+export async function getLoginAttempts(req: Request, res: Response) {
+  const logs = await getLoginAttemptsService();
+  res.status(200).json({ logs: logs });
 }
 
 export async function refresh(req: Request, res: Response) {
@@ -122,8 +147,8 @@ export async function refresh(req: Request, res: Response) {
 
   try {
     const { userId } = await validateRefreshToken(refreshToken);
-
-    const token = generateJWT(userId);
+    const user = await findUserById(userId);
+    const token = generateJWT(userId, user?.role);
 
     return res.status(200).json({ token });
   } catch (error) {
@@ -136,6 +161,12 @@ export async function refresh(req: Request, res: Response) {
       return res.status(401).json({
         error: "Refresh token is invalid or expired",
       });
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2025") {
+        res.status(404).json({ error: "Not Found" });
+        return;
+      }
     }
 
     console.error(error);

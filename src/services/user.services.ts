@@ -5,9 +5,11 @@ export const authRole = async (data: Role) => {
   const existingRole = await prisma.user.findFirst({
     where: {
       role: data,
-      //deletedAt: null,
+      OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
     },
   });
+  console.log("ENTRADA:", data);
+  console.log(existingRole);
   if (!existingRole) {
     throw new Error("Acesso negado");
   }
