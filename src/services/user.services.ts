@@ -8,8 +8,6 @@ export const authRole = async (data: Role) => {
       OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
     },
   });
-  console.log("ENTRADA:", data);
-  console.log(existingRole);
   if (!existingRole) {
     throw new Error("Acesso negado");
   }
