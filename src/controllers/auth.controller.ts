@@ -149,7 +149,7 @@ export async function signIn(req: Request, res: Response) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 60 * 1000,
       path: "/",
     });
 
@@ -180,9 +180,17 @@ export async function refresh(req: Request, res: Response) {
   try {
     const { userId } = await validateRefreshToken(refreshToken);
 
-    const token = generateJWT(userId);
+    const accessToken = generateJWT(userId);
 
-    return res.status(200).json({ token });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 60 * 1000,
+      path: "/",
+    });
+
+    return res.status(200).json({ message: "Token renovado" });
   } catch (error) {
     if (
       error instanceof jwt.JsonWebTokenError ||

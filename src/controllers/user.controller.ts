@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { updateUserSchema } from "../schemas/user.schema.js";
-import { updateUserService } from "../services/user.services.js";
+import { getMeService, updateUserService } from "../services/user.services.js";
 
 export async function updateUser(req: Request, res: Response) {
   try {
@@ -33,5 +33,22 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(500).json({
       error: "Internal Server Error",
     });
+  }
+}
+
+export async function getMe(req: Request, res: Response) {
+  try {
+    const userId = req.id;
+    const user = await getMeService(userId);
+
+    return res.status(200).json(user);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.cause === "ID_INVALID") {
+        return res.status(409).json({ error: "Id inválido" });
+      }
+    }
+
+    return res.status(500).json({ message: "Erro interno no servidor" });
   }
 }

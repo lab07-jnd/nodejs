@@ -49,3 +49,24 @@ export const updateUserService = async (data: DataUpdateUser) => {
     data: dataToUpdate,
   });
 };
+
+export const getMeService = async (id: string) => {
+  const user = await prisma.user.findFirst({
+    where: {
+      id,
+    },
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+    },
+  });
+
+  if (!user)
+    throw new Error("Id inválido", {
+      cause: "ID_INVALID",
+    });
+
+  return user;
+};
