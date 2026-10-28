@@ -7,14 +7,14 @@ import {
   refresh,
 } from "../controllers/auth.controller.js";
 
-const router = express.Router();
+const authRouter = express.Router();
 
-router.post("/SignUp", signUp);
-router.post("/SignIn", signIn);
+authRouter.post("/SignUp", signUp);
+authRouter.post("/SignIn", signIn);
 
-router.post("/password-reset", passwordReset);
-router.post("/change-password", changePassword);
+authRouter.post("/password-reset", passwordReset);
+authRouter.post("/change-password", changePassword);
 
-router.post("/Refresh", refresh);
+authRouter.post("/Refresh", refresh);
 
-export default router;
+export default authRouter;

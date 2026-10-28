@@ -9,7 +9,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { prisma } from "../lib/prisma.js";
 import { findUserByEmail } from "../services/user.services.js";
-
+import { env } from "../lib/env.js";
 import {
   generateRefreshToken,
   getLoginAttemptsService,
@@ -80,6 +80,7 @@ export async function signUp(req: Request, res: Response) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     await createUser(name, lowerEmail, passwordHash, phone);
+
     res.status(201).json({ msg: "Cadastro realizado com sucesso" });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
@@ -229,7 +230,7 @@ export async function changePassword(req: Request, res: Response) {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    jwt.verify(token, process.env.JWT_KEY! + user.passwordHash);
+    jwt.verify(token, env.JWT_SECRET! + user.passwordHash);
 
     await updateUserPassword(user.id, newPassword);
 
