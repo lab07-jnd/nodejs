@@ -14,7 +14,7 @@ Resolução dos apontamentos da review (PRs #1 e #2):
 - **Modelagem completa** — `User` ganhou `name`, `phone`, `emailVerified`, `isActive`, `lastLoginAt`,
   `passwordChangedAt` e o fluxo de **reset de senha** (`resetPasswordToken` + `resetPasswordExpires`);
   `Profile` ficou com os dados de RH.
-- **`src/.env` fora do Git** — removido do versionamento e criado o `.env.example`.
+- **`.env` fora do Git** — removido do versionamento e criado o `.env.example`.
 - **Prisma 6.x** — fixado em `6.19.0`, porque o **Prisma 7 não suporta MongoDB**.
 
 ## Modelo de dados

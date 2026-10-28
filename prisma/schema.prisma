@@ -21,9 +21,9 @@ model User {
 
   // Authentication
   passwordHash      String
-  role              Role      @default(employee)
-  emailVerified     Boolean   @default(false)
-  isActive          Boolean   @default(true)
+  role              Role     @default(employee)
+  emailVerified     Boolean  @default(false)
+  isActive          Boolean  @default(true)
   lastLoginAt       DateTime?
   passwordChangedAt DateTime?
 

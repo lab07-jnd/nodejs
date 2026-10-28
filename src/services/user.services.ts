@@ -14,3 +14,11 @@ export const authRole = async (data: Role) => {
 
   return existingRole.role;
 };
+
+export async function findUserByEmail(email: string) {
+  return prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+}
