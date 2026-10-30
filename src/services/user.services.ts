@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 export type Role = "admin" | "employee" | "manager";
+import bcrypt from "bcrypt";
 
 export const authRole = async (data: Role) => {
   const existingRole = await prisma.user.findFirst({
@@ -20,9 +21,11 @@ export const authRole = async (data: Role) => {
 export async function createUser(
   name: string,
   email: string,
-  passwordHash: string,
+  password: string,
   phone?: string | null,
 ) {
+  const passwordHash = await bcrypt.hash(password, 10);
+
   return prisma.user.create({
     data: {
       name,

@@ -5,18 +5,26 @@ import {
   findUserById,
   updateLoginDate,
 } from "../services/user.services.js";
-import { signInSchema, signUpSchema } from "../schemas/auth.schema.js";
+import {
+  signInSchema,
+  signUpSchema,
+  passwordResetSchema,
+  changePasswordSchema,
+} from "../schemas/auth.schema.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import { Prisma } from "@prisma/client";
 import {
   generateRefreshToken,
   getLoginAttemptsService,
   logLoginAttempt,
   saveRefreshToken,
   validateRefreshToken,
+  passwordResetToken,
+  changePasswordService,
+  sendPasswordResetToEmail,
   generateJWT,
+  verifyPassword,
 } from "../services/auth.service.js";
-import { Prisma } from "@prisma/client";
 
 export async function signUp(req: Request, res: Response) {
   const result = signUpSchema.safeParse(req.body);
@@ -40,9 +48,7 @@ export async function signUp(req: Request, res: Response) {
       return;
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    await createUser(name, lowerEmail, passwordHash, phone);
+    await createUser(name, lowerEmail, password, phone);
 
     res.status(201).json({ msg: "Cadastro realizado com sucesso" });
   } catch (error) {
@@ -86,7 +92,7 @@ export async function signIn(req: Request, res: Response) {
       return;
     }
 
-    const match = await bcrypt.compare(password, user.passwordHash);
+    const match = await verifyPassword(password, user.passwordHash);
 
     if (!match) {
       res.status(401).json({
@@ -127,6 +133,65 @@ export async function signIn(req: Request, res: Response) {
 
     res.status(500).json({
       error: "Internal Server Error",
+    });
+    return;
+  }
+}
+
+export async function passwordReset(req: Request, res: Response) {
+  const result = passwordResetSchema.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues.map((issue) => issue.message) });
+    return;
+  }
+  const { email } = result.data;
+  try {
+    const user = await findUserByEmail(email);
+    if (user) {
+      const token = passwordResetToken(user.passwordHash, user.id);
+      await sendPasswordResetToEmail(user.email, token);
+    }
+    res
+      .status(200)
+      .json({ message: "If you have an account, you will receive a link to reset your password" });
+    return;
+  } catch (error) {
+    console.error("Error requesting password reset:", error);
+
+    res.status(500).json({ error: "Internal Server Error" });
+    return;
+  }
+}
+
+export async function changePassword(req: Request, res: Response) {
+  const authHeader = req.headers.authorization;
+  const result = changePasswordSchema.safeParse(req.body);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error.issues.map((issue) => issue.message) });
+  }
+
+  if (!authHeader) {
+    return res.status(401).json({ error: "Token not provided" });
+  }
+
+  const [bearer, token] = authHeader.split(" ");
+  if (!bearer || bearer.toLowerCase() !== "bearer" || !token) {
+    return res.status(401).json({ error: "Invalid authorization header" });
+  }
+  const { newPassword } = result.data;
+
+  try {
+    if (!(await changePasswordService(token, newPassword))) {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    return res.status(200).json({ message: "Password successfully reseted" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+
+    return res.status(500).json({
+      error: "Internal server error",
     });
   }
 }
